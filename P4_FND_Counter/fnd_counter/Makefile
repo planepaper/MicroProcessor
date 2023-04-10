@@ -1,16 +1,16 @@
-# 	CC := /usr/local/arm-linux-4.1.1/bin/arm-linux-gcc
+﻿CC := /usr/local/arm-linux-4.1.1/bin/arm-linux-gcc
 
-OUTPUT		= led_dot
-SRCS		= ./src/main.c \
-				./src/led.c\
-				./src/dot.c\
-				./src/fnd.c
+OUTPUT = test6
+SRCS = ./src/main.c \
+	./src/led.c \
+	./src/dot.c	\
+	./src/fnd.c
 
-CFLAGS		= -I./lib
-
+CFLAGS = -I./lib
 
 $(OUTPUT) : $(SRCS)
 	$(CC) $(CFLAGS) -o $@ $(SRCS)
+
 
 xim : $(SRCS)
 	@cd /usr/xim && $(MAKE) -s xim_OUTPUT="$(OUTPUT)" \
