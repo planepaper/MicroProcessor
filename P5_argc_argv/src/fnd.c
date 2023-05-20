@@ -63,8 +63,14 @@ void fnd_hexa_number(unsigned long number)
     int i;
     for (i = 0; i < MAX_FND; i++)
     {
-        fnd_write(((short)(number & 0xF)), i);
+        fnd_write((short)(number & 0xF), i);
         number = number >> 4;
+
+        if (number == 0)
+            break;
     }
-    usleep(0); // for Ximulator
+    for (i++; i < MAX_FND; i++)
+    {
+        *fnd[i] = 0x00;
+    }
 }

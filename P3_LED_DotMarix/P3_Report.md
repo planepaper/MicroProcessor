@@ -1,4 +1,4 @@
-# <center>P2 두 개 이상의 장치 다루기 결과보고서</center>
+# <center>P3 두 개 이상의 장치 다루기 결과보고서</center>
 
 <div style="text-align: right"> 3조 20162581 손승표 </div>
 <br></br>
