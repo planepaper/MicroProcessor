@@ -38,6 +38,12 @@ typedef union {
 	};
 } seclection_t;
 
+struct Coordinate
+{
+    int x;
+    int y;
+} typedef Coordinate;
+
 int main();
 short * mapper(off_t offset, int prot);
 void unmapper();
@@ -50,13 +56,12 @@ void input_mode();
 void RunGame();
 void ClearPixels();
 void MakeCharcterJumpIfKeyDown();
-int GetKeyDown();
-void PutObjectOnPixels(boolean paint[][3], int x, int y);
+void PutObjectOnPixels(truth_t paint[][3], int x, int y);
 void SpawnCactus(int xPos);
 void MoveCactuses(int xDiff);
 void RemoveCactusesGone();
-boolean CheckCactusCollision(boolean obstaclePaint[][3], Coordinate obstaclePos[], int obastacleCounts);
-boolean CheckObstacleCollision(boolean paint[][3], int x, int y);
+truth_t CheckCactusCollision(truth_t obstaclePaint[][3], Coordinate obstaclePos[], int obastacleCounts);
+truth_t CheckObstacleCollision(truth_t paint[][3], int x, int y);
 void PutCactusesOnPixels();
 void PrintBoard();
 void PrintPixels();

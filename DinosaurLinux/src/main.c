@@ -38,13 +38,7 @@ static seclection_t sel;
 #define JUMPING_HEIGHT 8
 #define FLYING_COUNT 2
 
-#define UPPERBIT_BASE 0x10000
-
-struct Coordinate
-{
-    int x;
-    int y;
-} typedef Coordinate;
+#define UPPERBIT_BASE 0x40
 
 const truth_t character[5][3] =
 {
@@ -74,6 +68,10 @@ enum CharacterJumpingState
 
 truth_t pixels[PIXELS_HEIGHT][PIXELS_WIDTH];
 
+int clcd_index[LCD_HEIGHT][LCD_WIDTH];
+
+truth_t pattern_buffer[LCD_WIDTH * LCD_HEIGHT][CHAR_HEIGHT_PX];
+
 int life = 3;
 Coordinate characterPos = { CHAR_WIDTH_PX * 2, 0 };
 int flyingFrame = 0;
@@ -82,7 +80,6 @@ truth_t unstoppable = 0;
 
 Coordinate cactusesPos[100];
 int cactusesCounts = 0;
-
 
 int main(int argc, char* argv[]) {
 	
@@ -146,7 +143,7 @@ void emergency_closer() {
 
 truth_t logic() {
     char input;
-    scanf_s("%c", &input);
+    scanf("%c", &input);
 
     if(input == 's')
         RunGame();
@@ -157,22 +154,19 @@ truth_t logic() {
 
 void RunGame()
 {
-    clock_t start, end;
-    clock_t cactusTime = 0;
-    clock_t unstoppableTime = 0;
+    int cactusFrames = 0;
+    int unstoppableFrames = 0;
 
     while (1)
     {
-        start = clock();
-
         ClearPixels();
 
         MakeCharcterJumpIfKeyDown();
 
-        if (cactusTime > 3000)
+        if (cactusFrames > CHAR_WIDTH_PX * 8)
         {
             SpawnCactus(PIXELS_WIDTH);
-            cactusTime = 0;
+            cactusFrames = 0;
         }
         MoveCactuses(-1);
         RemoveCactusesGone();
@@ -183,11 +177,11 @@ void RunGame()
         {
             life--;
             unstoppable = 1;
-            unstoppableTime = 0;
+            unstoppableFrames = 0;
         }
         PutCactusesOnPixels();
 
-        if (unstoppable && unstoppableTime > 1000)
+        if (unstoppable && unstoppableFrames > CHAR_WIDTH_PX * 4)
         {
             unstoppable = 0;
         }
@@ -197,10 +191,10 @@ void RunGame()
 
         PrintBoard();
 
-        usleep(5000);
-        end = clock();
-        cactusTime += end - start;
-        unstoppableTime += end - start;
+        usleep(1);
+        
+        cactusFrames++;
+        unstoppableFrames++;
     }
 }
 
@@ -215,10 +209,11 @@ void ClearPixels()
 
 void MakeCharcterJumpIfKeyDown()
 {
+    int key_value;
     switch (characterJumpingState)
     {
     case GROUND:
-        if (GetKeyDown() == 'z' && characterJumpingState == GROUND)
+        if (keypad_read(&key_value) && characterJumpingState == GROUND)
         {
             characterJumpingState = ISGETTINGUP;
         }
@@ -257,15 +252,6 @@ void MakeCharcterJumpIfKeyDown()
     default:
         break;
     }
-}
-
-int GetKeyDown()
-{
-    if (_kbhit() != 0)
-    {
-        return _getch();
-    }
-    return 0;
 }
 
 void PutObjectOnPixels(truth_t paint[][3], int x, int y)
@@ -372,35 +358,79 @@ void PutCactusesOnPixels()
 
 void PrintBoard()
 {
+    int patternCounts = 0;
+
     int i, j, x, y;
+
+    int cgramIndex = 0;
+    
+    int clcd_rowIndex = 0;
+    int clcd_columnIndex = 0;
 
     for (j = PIXELS_HEIGHT - 1; j >= 0 ; j-= CHAR_HEIGHT_PX)
     {
-        int address = i * UPPERBIT_BASE;
         for(i = 0; i < PIXELS_WIDTH; i+= CHAR_WIDTH_PX)
         {
-            clcd_set_CGRAM(address)
+            truth_t patternExists = FALSE;
+
             for(y = 0; y < CHAR_HEIGHT_PX; y++)
             {
                 int rowbinary = 0;
                 for(x = 0; x < CHAR_WIDTH_PX; x++)
                 {
-                    rowbinary << 1;
+                    rowbinary = rowbinary << 1;
                     rowbinary += pixels[j - y][i + x];
                 }
-                clcd_write_data(rowbinary);
+
+                pattern_buffer[patternCounts][y] = rowbinary;
+
+                if(rowbinary)
+                    patternExists = TRUE;
             }
-            address++;
+
+            if(patternExists)
+            {
+                clcd_index[clcd_columnIndex][clcd_rowIndex] = patternCounts;
+                patternCounts++;                
+            }
+            else
+            {
+                clcd_index[clcd_columnIndex][clcd_rowIndex] = -1;
+            }
+
+            clcd_rowIndex++;
+        }
+        clcd_rowIndex = 0;
+        clcd_columnIndex++;
+    }
+
+    //WRITE_PATTERN
+    clcd_set_CGRAM(0);
+    for(i = 0; i < patternCounts; i++)
+    {
+        for(j = 0; j < CHAR_HEIGHT_PX; j++)
+        {
+            clcd_write_data(pattern_buffer[i][j]);
         }
     }
 
-    for (i = 0; i < LCD_HEIGHT; i++)
+    //PRINT_PATTERN_ON_DISPLAY
+    clcd_clear_display();
+    int ddramIndex = 0;
+    for(j = 0; j < LCD_HEIGHT; j++)
     {
-        int address = i * UPPERBIT_BASE;
-        for(j = 0; j < LCD_WIDTH; j++)
+        for(i = 0; i < LCD_WIDTH; i++)
         {
-            clcd_write_string(address);
-            address++;
+
+            if(clcd_index[j][i] >= 0)
+            {
+                clcd_set_DDRAM(ddramIndex);
+                clcd_write_data(clcd_index[j][i]);
+            }
+
+            ddramIndex++;
         }
+
+        ddramIndex = 0x40;
     }
 }
