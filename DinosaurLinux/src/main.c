@@ -122,6 +122,9 @@ truth_t unstoppable = 0;
 
 Coordinate cactusesPos[100];
 int cactusesCounts = 0;
+int score = 0;
+
+truth_t unstoppableSwitch = TRUE;
 
 int main();
 short *mapper(off_t offset, int prot);
@@ -135,12 +138,16 @@ void PutObjectOnPixels(truth_t paint[][10], int paintXSize, int paintYSize, int 
 void SpawnCactus(int xPos);
 void MoveCactuses(int xDiff);
 void RemoveCactusesGone();
-truth_t CheckCactusCollision(truth_t obstaclePaint[][10], Coordinate obstaclePos[], int obastacleCounts);
-truth_t CheckObstacleCollision(truth_t paint[][10], int paintXsize, int paintYSize, int x, int y);
+truth_t CheckCactusCollision(truth_t obstaclePaint[][5], Coordinate obstaclePos[], int obastacleCounts);
+truth_t CheckObstacleCollision(truth_t paint[][5], int paintXsize, int paintYSize, int x, int y);
 void PutCactusOnPixels(truth_t paint[][5], int paintXSize, int paintYSize, int x, int y);
 void PutCactusesOnPixels();
 void PrintBoard();
+void PrintLife();
+void PrintUnstoppable();
+void PrintScore();
 void PrintPixels();
+truth_t CheckScore();
 
 int main(int argc, char *argv[])
 {
@@ -215,11 +222,43 @@ void emergency_closer()
 
 truth_t logic()
 {
-    char input;
-    scanf("%c", &input);
+    led_clear();
 
-    if (input == 's')
-        RunGame();
+    dot_clear();
+
+    fnd_clear();
+
+    clcd_clear_display();
+    clcd_set_DDRAM(0x01);
+    clcd_write_string("Dinosaur  Game");
+    clcd_set_DDRAM(0x40);
+    clcd_write_string("Press Any Button");
+
+    int key_value = 0;
+    while(!keypad_read(&key_value))
+    {
+
+    }
+
+    clcd_clear_display();
+    int i;
+    for(i = 3 ; i > 0; i--)
+    {
+        char a[2];
+        clcd_set_DDRAM(0x07);
+        a[0] = '0' + i;
+        a[1] = '\0';
+        clcd_write_string(a);
+        usleep(1000000);
+    }
+
+    RunGame();
+
+    usleep(3000000);
+
+    clcd_clear_display();
+    clcd_set_DDRAM(0x04);
+    clcd_write_string("Game Over");
 
     return FALSE;
 }
@@ -265,15 +304,24 @@ void RunGame()
         }
         PutCactusesOnPixels();
 
+        if(CheckScore())
+        {
+            score += 100;
+        }
+
         if (unstoppable && unstoppableFrames > CHAR_WIDTH_PX * 4)
         {
             unstoppable = 0;
+            led_clear();
         }
+
+        PrintBoard();
+        PrintLife();
+        PrintUnstoppable();
+        PrintScore();
 
         if (life <= 0)
             return;
-
-        PrintBoard();
 
         cactusFrames++;
         unstoppableFrames++;
@@ -291,7 +339,7 @@ void ClearPixels()
 
 void MakeCharcterJumpIfKeyDown()
 {
-    int key_value;
+    int key_value = 0;
     switch (characterJumpingState)
     {
     case GROUND:
@@ -417,7 +465,7 @@ void RemoveCactusesGone()
     }
 }
 
-truth_t CheckCactusCollision(truth_t obstaclePaint[][10], Coordinate obstaclePos[], int obastacleCounts)
+truth_t CheckCactusCollision(truth_t obstaclePaint[][5], Coordinate obstaclePos[], int obastacleCounts)
 {
     int i;
 
@@ -431,7 +479,7 @@ truth_t CheckCactusCollision(truth_t obstaclePaint[][10], Coordinate obstaclePos
     return 0;
 }
 
-truth_t CheckObstacleCollision(truth_t paint[][10], int paintXSize, int paintYSize, int x, int y)
+truth_t CheckObstacleCollision(truth_t paint[][5], int paintXSize, int paintYSize, int x, int y)
 {
     int j, i;
     for (j = paintYSize - 1; j >= 0; j--)
@@ -458,6 +506,21 @@ void PutCactusesOnPixels()
     {
         PutCactusOnPixels(cactus, CACTUS_XSIZE, CACTUS_YSIZE, cactusesPos[i].x, 0);
     }
+}
+
+truth_t CheckScore()
+{
+    int scoreInterval = CHAR_WIDTH_PX * 4 - 5;
+    int i;
+    for (i = 0; i < cactusesCounts; i++)
+    {
+        if(!unstoppable && cactusesPos[i].x <= scoreInterval && cactusesPos[i].x > scoreInterval - 3)
+        {
+            return 1;
+        }
+    }
+        
+    return 0;
 }
 
 void PrintBoard()
@@ -537,4 +600,29 @@ void PrintBoard()
 
         ddramIndex = 0x40;
     }
+}
+
+void PrintLife()
+{
+    dot_write(life);
+}
+
+void PrintUnstoppable()
+{
+    if(unstoppable)
+    {
+        if(unstoppableSwitch)
+            led_all();
+        else
+            led_clear();
+
+        unstoppableSwitch = !unstoppableSwitch;
+    }
+    else
+        led_clear();
+}
+
+void PrintScore()
+{
+    fnd_decimal_clearing_front_zeros(score);
 }

@@ -54,3 +54,20 @@ void fnd_hexa_number(unsigned long number) {
 		number = number >> 4;
 	}
 }
+
+void fnd_decimal_clearing_front_zeros(unsigned long number)
+{
+	int i;
+	for (i = 0; i < MAX_FND; i++)
+	{
+		fnd_write(number % 10, i);
+		number /= 10;
+
+		if (number == 0)
+			break;
+	}
+	for (i++; i < MAX_FND; i++)
+	{
+		*fnd[i] = 0x00;
+	}
+}
